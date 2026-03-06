@@ -58,10 +58,8 @@ function setupMonthSelector() {
     });
 }
 
-// A versão atualizada da função addTransaction:
 function addTransaction(e) {
     e.preventDefault();
-    
     const type = document.getElementById('formType').value;
     const amountRaw = document.getElementById('formValue').value;
     const dateRaw = document.getElementById('formDate').value;
@@ -69,30 +67,23 @@ function addTransaction(e) {
     const subtype = type === 'yield' ? document.getElementById('formYieldType').value : null;
 
     const amount = parseFloat(amountRaw);
-    if (isNaN(amount)) {
-        alert("Por favor, insira um valor numérico válido.");
-        return;
-    }
+    if (isNaN(amount)) { alert("Por favor, insira um valor numérico válido."); return; }
 
     const newTx = { id: Date.now(), type, amount, date: dateRaw, description: desc, subtype: subtype };
-    
     transactions.push(newTx);
-    salvarDados(); 
-    
+    salvarDados();
     document.getElementById('formDesc').value = '';
     document.getElementById('formValue').value = '';
-    
     setupMonthSelector();
     selectedMonth = dateRaw.substring(0, 7);
     document.getElementById('monthSelector').value = selectedMonth;
-    
     updateDashboard();
 }
 
 function deleteTransaction(id) {
     if (confirm('Deseja realmente excluir este lançamento?')) {
         transactions = transactions.filter(t => t.id !== id);
-        salvarDados(); 
+        salvarDados();
         updateDashboard(); 
     }
 }
@@ -140,9 +131,53 @@ function renderTransactionList(txList) {
     });
 }
 
-// Funções utilitárias mantidas igual ao seu original:
+function setFormType(type) {
+    document.getElementById('formType').value = type;
+    ['income', 'expense', 'yield'].forEach(t => {
+        const el = document.getElementById(`tab-${t}`);
+        if(el) {
+            el.classList.remove('border-emerald-500', 'text-emerald-600', 'border-rose-500', 'text-rose-600', 'border-teal-500', 'text-teal-600');
+            el.classList.add('border-transparent', 'text-stone-500');
+        }
+    });
+    const activeTab = document.getElementById(`tab-${type}`);
+    const btnSubmit = document.getElementById('btnSubmit');
+    const yieldContainer = document.getElementById('yieldTypeContainer');
+    if(yieldContainer) yieldContainer.classList.add('hidden');
+    if (activeTab) {
+        if (type === 'income') { activeTab.classList.add('border-emerald-500', 'text-emerald-600'); btnSubmit.textContent = 'Adicionar Recebimento'; }
+        else if (type === 'expense') { activeTab.classList.add('border-rose-500', 'text-rose-600'); btnSubmit.textContent = 'Adicionar Gasto'; }
+        else if (type === 'yield') { activeTab.classList.add('border-teal-500', 'text-teal-600'); btnSubmit.textContent = 'Adicionar Rendimento/Lucro'; yieldContainer.classList.remove('hidden'); }
+    }
+}
+
 const formatCurrency = (v) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
 const formatDateShort = (s) => { const [y, m, d] = s.split('-'); return `${d}/${m}`; };
-function setFormType(type) { /* ... mantenha sua função original ... */ }
-function renderPieChart(incomes, expenses, yields) { /* ... mantenha sua função original ... */ }
-function renderBarChart() { /* ... mantenha sua função original ... */ }
+
+function renderPieChart(incomes, expenses, yields) {
+    const ctx = document.getElementById('pieChart')?.getContext('2d');
+    if (!ctx) return;
+    if (myPieChart) myPieChart.destroy();
+    if (incomes === 0 && expenses === 0 && yields === 0) { ctx.canvas.style.display = 'none'; return; }
+    ctx.canvas.style.display = 'block';
+    myPieChart = new Chart(ctx, { type: 'doughnut', data: { labels: ['Recebimentos', 'Rendimentos', 'Gastos'], datasets: [{ data: [incomes, yields, expenses], backgroundColor: ['#10b981', '#14b8a6', '#f43f5e'] }] }, options: { responsive: true, maintainAspectRatio: false, cutout: '65%' } });
+}
+
+function renderBarChart() {
+    const ctx = document.getElementById('barChart')?.getContext('2d');
+    if (!ctx) return;
+    if (myBarChart) myBarChart.destroy();
+    const [selYear, selMonth] = selectedMonth.split('-');
+    const d = new Date(selYear, selMonth - 1);
+    const labels = [], dataIn = [], dataOut = [];
+    for (let i = 5; i >= 0; i--) {
+        const checkDate = new Date(d.getFullYear(), d.getMonth() - i);
+        const checkStr = `${checkDate.getFullYear()}-${String(checkDate.getMonth() + 1).padStart(2, '0')}`;
+        labels.push(checkDate.toLocaleString('pt-BR', { month: 'short' }));
+        const monthTx = transactions.filter(t => t.date.substring(0, 7) === checkStr);
+        let sIn = 0, sOut = 0;
+        monthTx.forEach(t => { if(t.type === 'income' || t.type === 'yield') sIn += t.amount; if(t.type === 'expense') sOut += t.amount; });
+        dataIn.push(sIn); dataOut.push(sOut);
+    }
+    myBarChart = new Chart(ctx, { type: 'bar', data: { labels, datasets: [{ label: 'Entradas', data: dataIn, backgroundColor: '#10b981' }, { label: 'Gastos', data: dataOut, backgroundColor: '#f43f5e' }] }, options: { responsive: true, maintainAspectRatio: false } });
+}
