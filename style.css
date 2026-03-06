@@ -1,0 +1,21 @@
+body {
+    background-color: #fafaf9;
+    color: #292524;
+}
+
+.chart-container {
+    position: relative;
+    width: 100%;
+    max-width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    height: 300px;
+    max-height: 400px;
+}
+
+@media (min-width: 768px) {
+    .chart-container { height: 350px; }
+}
+
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
