@@ -15,7 +15,6 @@ const generateMockData = () => {
     return data;
 };
 
-// Carrega dados salvos ou gera mock
 let transactions = JSON.parse(localStorage.getItem('minhasFinancas')) || generateMockData();
 const todayStr = new Date().toISOString().slice(0, 7);
 let selectedMonth = todayStr;
@@ -39,7 +38,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function setupMonthSelector() {
     const selector = document.getElementById('monthSelector');
-    // Garante que o mês atual e o próximo apareçam sempre
     const monthsSet = new Set(transactions.map(t => t.date.substring(0, 7)));
     const now = new Date();
     const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1);
@@ -60,24 +58,41 @@ function setupMonthSelector() {
     });
 }
 
+// A versão atualizada da função addTransaction:
 function addTransaction(e) {
     e.preventDefault();
+    
     const type = document.getElementById('formType').value;
-    const newTx = { id: Date.now(), type, amount: parseFloat(document.getElementById('formValue').value), date: document.getElementById('formDate').value, description: document.getElementById('formDesc').value, subtype: type === 'yield' ? document.getElementById('formYieldType').value : null };
+    const amountRaw = document.getElementById('formValue').value;
+    const dateRaw = document.getElementById('formDate').value;
+    const desc = document.getElementById('formDesc').value;
+    const subtype = type === 'yield' ? document.getElementById('formYieldType').value : null;
+
+    const amount = parseFloat(amountRaw);
+    if (isNaN(amount)) {
+        alert("Por favor, insira um valor numérico válido.");
+        return;
+    }
+
+    const newTx = { id: Date.now(), type, amount, date: dateRaw, description: desc, subtype: subtype };
+    
     transactions.push(newTx);
-    salvarDados(); // Salva
+    salvarDados(); 
+    
     document.getElementById('formDesc').value = '';
     document.getElementById('formValue').value = '';
+    
     setupMonthSelector();
-    const txMonth = newTx.date.substring(0, 7);
-    if(txMonth !== selectedMonth) { selectedMonth = txMonth; document.getElementById('monthSelector').value = selectedMonth; }
+    selectedMonth = dateRaw.substring(0, 7);
+    document.getElementById('monthSelector').value = selectedMonth;
+    
     updateDashboard();
 }
 
 function deleteTransaction(id) {
     if (confirm('Deseja realmente excluir este lançamento?')) {
         transactions = transactions.filter(t => t.id !== id);
-        salvarDados(); // Salva
+        salvarDados(); 
         updateDashboard(); 
     }
 }
@@ -125,4 +140,9 @@ function renderTransactionList(txList) {
     });
 }
 
-// ... (funções setFormType, formatCurrency, formatDateShort, renderPieChart e renderBarChart permanecem iguais ao seu original)
+// Funções utilitárias mantidas igual ao seu original:
+const formatCurrency = (v) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
+const formatDateShort = (s) => { const [y, m, d] = s.split('-'); return `${d}/${m}`; };
+function setFormType(type) { /* ... mantenha sua função original ... */ }
+function renderPieChart(incomes, expenses, yields) { /* ... mantenha sua função original ... */ }
+function renderBarChart() { /* ... mantenha sua função original ... */ }
